@@ -6,12 +6,46 @@ services:
     ports:
       - 80:80
       - 443:443
+    # セキュリティ/リソース系
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+    ulimits:
+      nofile: 65535
+    security_opt:
+      - no-new-privileges:true
+    # ログローテーション（Docker 側）
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    environment:
+      # 近代的な暗号スイート
+      SSL_POLICY: Mozilla-Modern
+      # HTTP/2 有効（デフォルトでON）
+      ENABLE_IPV6: "false"
+      # こちらのファイル名が存在する場合、使用されます
+      # 例: /etc/nginx/dhparam/dhparam.pem
+      DHPARAM_GENERATION: "false"
+
     volumes:
-      - ./certs:/etc/nginx/certs:ro
-      - /etc/nginx/vhost.d
-      - /usr/share/nginx/html
+      # Dockerイベントを拾って自動で仮想ホスト設定を生成
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./conf.d/my.conf:/etc/nginx/conf.d/my.conf
+      - ./certs:/etc/nginx/certs:ro
+      # 永続化したnginx設定やdhparam
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/vhost.d:/etc/nginx/vhost.d
+      - ./nginx/html:/usr/share/nginx/html
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - proxy-net
+
     restart: always
 
   nginx-letsencrypt:
@@ -26,6 +60,6 @@ services:
     restart: always
 
 networks:
-  default:
-    external:
-      name: nginxproxy_default
+  proxy-net:
+    name: proxy-net
+    driver: bridge
