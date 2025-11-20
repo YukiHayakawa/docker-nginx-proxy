@@ -1,6 +1,8 @@
 certs/*
 default.conf
 
+nginx/vhost.d/*
+!nginx/vhost.d/.gitkeep
 # Ignore system files
 .DS_Store
 .vscode
