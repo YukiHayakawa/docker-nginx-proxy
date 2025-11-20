@@ -4,8 +4,8 @@
 $ mkdir certs
 ```
 
-## ネットワークの作成
+## 起動
 
 ```
-$ docker network create proxy-net
+$ docker compose up -d
 ```
